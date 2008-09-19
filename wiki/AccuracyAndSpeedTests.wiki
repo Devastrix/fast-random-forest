@@ -1,4 +1,5 @@
 #summary FastRandomForest compared to original Weka RF in speed and accuracy of classification.
+#labels Featured,Phase-QA
 
 = Summary =
 
