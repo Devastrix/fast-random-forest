@@ -3,7 +3,7 @@
 
 = Summary =
 
-I have downloaded a set of arff files with UCI repository datasets from [http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html], and used the built-in Benchmark tool to compare the speed and accuracy of the original Weka RF to !FastRandomForest on 33 of the datasets. Ten runs of tenfold crossvalidation were used.
+I have downloaded a set of arff files with UCI repository datasets from [http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html], and used the built-in Benchmark tool to compare the speed and accuracy of the original Weka RF to !FastRandomForest on 33 of the datasets. Ten runs of tenfold crossvalidation were used. I've set the forest size to 100 trees.
 
 In brief, the speedup was on average 4.7x, at least 1.4x (iris.arff), and at most 11x (colic.arff). This in using Java server VM 1.6u07, 64-bit Windows XP, and an AMD Athlon 2800+. 
 
