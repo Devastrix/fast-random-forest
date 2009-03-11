@@ -7,7 +7,7 @@ I have downloaded a set of arff files with UCI repository datasets from [http://
 
 Ten runs of tenfold crossvalidation were used. I've set the forest size to 100 trees. The Benchmark tool uses Weka's Corrected Paired t-Tester to determine winners in
   * classification accuracy, as % instances classified correctly
-  * a weighted average of per-class AUC scores; weights derive from class sizes
+  * a weighted average of per-class AUC scores; weights derive from class sizes (after: _Provost and Domingos, CeDER Working Paper #IS-00-04, Stern School of Business, New York University, 2001_)
 
 Weka RF was better by either accuracy or area-under-ROC in 6 of 33 datasets (autos, colic, hypothyroid, letter, vowel and zoo), while !FastRandomForest was better in 3 of 33 datasets (balance-scale, heart-h, labor).
 
