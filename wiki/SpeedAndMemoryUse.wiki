@@ -1,5 +1,5 @@
 #summary FastRandomForest 0.98 compared to original Weka RF in speed and use of memory.
-#labels Featured,Phase-QA
+#labels Phase-QA
 
 = Setup and Summary =
 
