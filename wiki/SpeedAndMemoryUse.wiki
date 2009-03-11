@@ -9,7 +9,7 @@ In brief, you can expect a *2-fold reduction in memory use*, and a 5x speedup ov
 
 = Speed Tests =
 
-I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF to single-thread mode of FastRandomForest on 33 datasets. The forest size was set to 100 trees, and ten runs of tenfold crossvalidation were used. 
+I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF to single-thread mode of !FastRandomForest on 33 datasets. The forest size was set to 100 trees, and ten runs of tenfold crossvalidation were used. 
 
 Average speed-up factor: in single-threaded mode is *5.8 x* faster.
 
@@ -53,7 +53,7 @@ Average speed-up factor: in single-threaded mode is *5.8 x* faster.
 
 = Multithreading =
 
-FastRandomForest 0.98 can use multiple threads in classifier training, and in out-of-bag error estimation. Test machine and software setup as above. Table shows speedup factor over single threaded operation for three large datasets.
+!FastRandomForest 0.98 can use multiple threads in classifier training, and in out-of-bag error estimation. Test machine and software setup as above. Table shows speedup factor over single threaded operation for three large datasets.
 
 || threads || waveform-5000.arff || splice.arff	|| hypothyroid.arff ||
 || 1 || 1.00 x || 1.00 x || 1.00 x ||
@@ -71,9 +71,9 @@ It is critical that you use the *server VM* ("java -server") for optimal multith
 
 = Memory use =
 
-Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets.
+Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets. If the "-Xmx" option is set to anything less, the training will not succeed.
 
-|| dataset || heapSize_wekaRf || heapSize_fastRf || memory_savings ||
+|| *dataset* || *heapSize_wekaRf* || *heapSize_fastRf* || *memory_savings* ||
 || splice.arff || 630 || 320 || 2.0 x ||
 || hypothyroid.arff || 130 || 50 || 2.6 x ||
 || colic.arff || 180 || 40 || 4.5 x ||
