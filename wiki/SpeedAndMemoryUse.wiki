@@ -1,6 +1,6 @@
 #summary FastRandomForest 0.98 compared to original Weka RF in speed and use of memory.
 #labels Phase-QA,Featured
-#sidebar MySidebar
+#sidebar <wiki:toc max_depth="1"/>
 
 =Setup and Summary=
 
@@ -8,7 +8,7 @@ I've downloaded a set of UCI repository datasets from http://www.cs.waikato.ac.n
 
 In brief, you can expect a *2-fold reduction in memory use*, and a 5x speedup over Weka's original RF in single-threaded mode. Running 4 threads on a capable machine will get you at least 3x scaling, for a total of *15x faster operation* than Weka's RF.
 
-<wiki:toc max_depth="1"/>
+
 
 =Speed tests=
 
