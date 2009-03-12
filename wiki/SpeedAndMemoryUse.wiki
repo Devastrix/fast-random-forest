@@ -1,13 +1,13 @@
 #summary FastRandomForest 0.98 compared to original Weka RF in speed and use of memory.
 #labels Phase-QA,Featured
 
-= Setup and Summary =
+=Setup and Summary=
 
 I've downloaded a set of UCI repository datasets from http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html. Ten runs of tenfold crossvalidation were used. Java version is 1.6.0_12-b04, server VM heap size 1 GB, 64-bit Windows XP, machine has dual Opteron 2354 (2 sockets, 8 cores).
 
 In brief, you can expect a *2-fold reduction in memory use*, and a 5x speedup over Weka's original RF in single-threaded mode. Running 4 threads on a capable machine will get you at least 3x scaling, for a total of *15x faster operation* than Weka's RF.
 
-= Speed Tests =
+=Speed tests=
 
 I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF to single-thread mode of !FastRandomForest on 33 datasets. The forest size was set to 100 trees, and ten runs of tenfold crossvalidation were used. 
 
@@ -51,7 +51,7 @@ Average speed-up factor: in single-threaded mode FastRF is *5.8 x* faster.
 
 .
 
-= Multithreading =
+=Multithreading=
 
 !FastRandomForest 0.98 can use multiple threads in classifier training, and in out-of-bag error estimation. Test machine and software setup as above. Figure shows speedup factor over single threaded operation for three large datasets.
 
@@ -61,7 +61,7 @@ It is critical that you use the *server VM* ("java -server") for optimal multith
 
 .
 
-= Memory use =
+=Memory use=
 
 Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets. If the "-Xmx" option is set to anything less (in 10 MB increments), the training will not succeed.
 
@@ -75,7 +75,7 @@ Table shows minimum heap size required to successfully train and test a forest o
 
 .
 
-= Java vs. native code =
+=Java vs. native code=
 
 I compared execution time of FastRandomForest to the excellent Fortran-based [http://parf.googlecode.com/ PARF] implementation, and found they were basically equivalent. (1000 trees, no crossvalidation)
 
