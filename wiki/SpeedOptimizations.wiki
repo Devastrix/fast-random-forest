@@ -1,5 +1,5 @@
 #summary Source code changes in FastRandomForest compared to original RF implementation in Weka.
-#labels Phase-Design,Featured
+#labels Phase-Design
 
 = VERSION 0.7 (first public release) =
 
@@ -21,8 +21,6 @@ The FastRfTree class (replaces weka.classifiers.trees.RandomTree):
   * The FastRfTree has a different way of handling instances with missing values in attribute chosen for the split. The RandomTree used to 'split up' such an instance in two instances, with weights that are proportional to size of each branch at splitting point. Instead, FastRfTree assignes the instance to one of the branches at random, with bigger branches having a higher probability of getting the instance. This allows us to skip creating new arrays of instance weights and passing them down the tree, as the weights do not change anymore. My reasoning was that such an approximation was acceptable when a forest with lots (>100) of trees was created, although it may not be on a single tree.
   * The splitData procedure splits int[][] sortedIndices into two (or more for categorical split attributes) int[][][] subsetIndices. It was quite slow before because it checked whether an instance's split attribute value was above or below splitting threshold for each attribute in sortedIndices. Now, this checking is done only once, and results are stored into the dataset's whatGoesWhere array (dataset must be of type FastRfInstances). 
   * As a consequence of the above, the exact branch sizes (even with instances having unknowns in the split attribute) are known in advance so subsetIndices arrays don't have to be 'resized' (i.e. a new shorter copy of each one created and the old one GCed – quite a lot of data being shuffled around).
-
-
 
 
 = VERSION 0.71 =
@@ -84,3 +82,45 @@ Changes in the FastRandomTree class:
     * before it was possible to create a split 'in the middle' of the first instance 0, which would result in empty nodes after the split and cause  errors after the (otherwise unnecessary) m_classProbs was removed in 0.71. This 'empty node problem' is now fixed.
     * dist[][] is now computed only after the split point has been found, and not updated continually by copying from currDist.
     * instance 0 is now skipped when looking for split points, as the split point 'before instance 0' is not sensible and entropy does not need to be computed.
+
+
+= VERSION 0.95 =
+
+Multithreading is used in classifier training, and in out-of-bag error
+estimation.
+  * The classifiers in FastRfBagging are trained in separate "tasks" which are  handled by an ExecutorService (the FixedThreadPool) which runs the tasks in more threads in parallel. If the number of threads is not specified, it will be set automatically to the available number of cores. 
+  * Estimating the out-of-bag (OOB) error is also multithreaded, using the newly introduced VotesCollector class
+  * To support multithreading, the classes FastRandomTree and DataCache also had to be reworked. FastRandomTree now holds a field with a reference to its DataCache (set to null right after training), and the DataCache has its own reusableRandomGenerator; before, both of these objects were passed down the buildTree() recursion. Also, the FastRandomTree.run() method now replaces the initial call of buildTree().
+
+Two rarely occuring bugs were fixed in finding split points.
+  * Sometimes an attribute with all missing values could be judged as carrying some information after split, and selected as the split criterion. while the splitpoint would be set to -Double.MAX_VALUE. This would result in unnecessary (but otherwise harmless) additional branches in the tree.
+  * Due to imprecision of the fastLog2 function, some splits which would normally have reduction of entropy of 0 (ie. be useless) actually had a very small positive value; this was fixed by checking reduction of entropy against a small constant (0.01) instead of against 0.
+
+Serialization is no longer used to make copies of the initial FastRandomTree.
+  * It's much faster to create the trees using the normal constructor and fill their fields with necessary data. The whole FastRandomForest may normally be  serialized, as before.
+
+
+= VERSION 0.97 =
+
+Changes in normalization of class probabilities in leaves (m_ClassProbs)
+  * In Weka RF, the final m_ClassProbs was obtained by normalizing the sums of  per-class instance weights so that their total equals to 1.0; now, they are normalized by dividing sum of instance weights in each class with the total number of instances in node. This subtle change has two implications:
+    # As a consequence of bootstrap sampling, instances get varying weights if they are sampled multiple times. Now we allow this to influence how trees vote, which decorrelates individual trees and may have a mild positive effect on predictive ability of the forest.
+     # More importantly, if user changes instance weights before training  (for example, to put more emphasis on a rare class), the current normalization scheme will cause this change to shift the per-class probabilities (prediction) supplied by the forest. Before this wasn't the case.
+  * In parallel with the above, the manner in which the out-of-bag (OOB) error estimate is computed has been changed. OOB estimation in Weka's Bagging is one tree - one vote. In FastRF 0.97 onwards, some trees will have a heavier weight in the overall vote depending on the averaged weights of instances that ended in the specific leaf. Also, if impure nodes are present, trees may vote for more than one class simultaneously.
+
+
+= VERSION 0.98 =
+
+Change in handling empty nodes.
+  * Empty nodes frequently appear when splitting on nominal attributes with more than two categories. What happens if an instance ends up in an empty node during testing?
+    * In Weka RF, the class distribution of its parent node would be looked up and offered as an answer.
+    * In FastRF prior to version 0.98, the tree would vote with all zeroes, effectively excluding its vote from the forest when testing the given instance.
+    * To increase compatibility, FastRF 0.98 onwards reverts to a behavior similar to Weka RF. However, the class distributions of the non-leaf nodes are not saved, and therefore we have to check whether a node will be empty *before* performing the split and set its class probabilities in the parent's buildTree() call.
+
+Memory use optimizations in the DataCache.
+  * The creation of the whatGoesWhere[] for each bag is delayed; this array is now created in the FastRandomTree.run().
+  * The creation of the sortedIndices[][] for each bag is delayed; it was created in DataCache.resample(), but now it is created in the FastRandomTree.run().
+
+Changes to the Benchmark class.
+  * Switched to a generalization of AUC score to multiclass problems as described in Provost and Domingos (CeDER Working Paper #IS-00-04, Stern School of Business, New York University, 2001), computed by taking a *weighted* average over all one-vs-all binary classification problems that can be derived from the multiclass problem, where weights correspond to class prior probabilities.
+  * System.gc() is invoked after each classifier.
