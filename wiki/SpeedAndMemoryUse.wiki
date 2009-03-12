@@ -65,13 +65,15 @@ Average speed-up factor: in single-threaded mode FastRF is *5.8 x* faster.
 || 7 || 5.59 x || 4.20 x || 4.93 x ||
 || 8 || 6.23 x || 4.44 x || 5.21 x ||
 
+http://lis.irb.hr/~fran/fastRF_0.98_scaling_nessie.png
+
 It is critical that you use the *server VM* ("java -server") for optimal multithreaded performance.
 
 .
 
 = Memory use =
 
-Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets. If the "-Xmx" option is set to anything less, the training will not succeed.
+Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets. If the "-Xmx" option is set to anything less (in 10 MB increments), the training will not succeed.
 
 || *dataset* || *heapSize_wekaRf* || *heapSize_fastRf* || *memory_savings* ||
 || splice.arff || 630 || 320 || 2.0 x ||
