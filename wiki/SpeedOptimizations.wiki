@@ -1,6 +1,8 @@
 #summary Source code changes in FastRandomForest compared to original RF implementation in Weka.
 #labels Phase-Design
 
+<wiki:toc max_depth="1"/>
+
 = VERSION 0.7 (first public release) =
 
 The following changes were made over Weka's RandomForest implementation (in Weka
