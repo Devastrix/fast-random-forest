@@ -72,3 +72,16 @@ Table shows minimum heap size required to successfully train and test a forest o
 || waveform-5000.arff || 360 || 190 || 1.9 x ||
 || segment.arff || 80 || 40 || 2.0 x ||
 || mushroom.arff || 70 || 90 || 0.8 x ||
+
+.
+
+= Java vs. native code =
+
+I compared execution time of FastRandomForest to the excellent Fortran-based [http://parf.googlecode.com/ PARF] implementation, and found they were basically equivalent. (1000 trees, no crossvalidation)
+
+|| *dataset* || FastRF_runtime || PARF_runtime ||
+|| waveform-5000.arff || 1m22.887s || 1m26.3s ||
+|| segment.arff || 16.0s || 12.6s ||
+|| letter.arff || 4m30.4s || 5m0.3s ||
+
+Tests were run on datasets with only numerical attributes, as PARF has a sophisticated scheme for splitting on nominal attributes which would put it at a disadvantage when testing speed only.
