@@ -1,5 +1,5 @@
-#summary FastRandomForest compared to original Weka RF in accuracy of classification.
-#labels Phase-QA
+#summary FastRandomForest 0.98 compared to original Weka RF in accuracy of classification.
+#labels Phase-QA,Featured
 
 = Summary =
 
