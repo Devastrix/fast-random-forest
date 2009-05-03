@@ -13,7 +13,7 @@ Weka RF was better by either accuracy or area-under-ROC in 6 of 33 datasets (aut
 
 = Overview by dataset =
 
-|| *dataset* || *instances* || *attributes* || *classes* || *wekaRF_AUC* || *fastRF_AUC* || *AUC_pVal* || *AUC_winner* || *fastRF_AUC* || *fastRF_AUC* || *accy_pVal* || *accy_winner* ||
+|| *dataset* || *instances* || *attributes* || *classes* || *wekaRF_AUC* || *fastRF_AUC* || *AUC_pVal* || *AUC_winner* || *fastRF_accy* || *fastRF_accy* || *accy_pVal* || *accy_winner* ||
 || anneal.arff || 898 || 39 || 6 || 0.999 ± 0.000 || 0.999 ± 0.000 || 0.557 || noone || 99.65 ± 0.09 || 99.56 ± 0.03 || 0.055 || noone ||
 || audiology.arff || 226 || 70 || 24 || 0.966 ± 0.001 || 0.965 ± 0.002 || 0.460 || noone || 79.60 ± 0.89 || 79.64 ± 0.80 || 0.936 || noone ||
 || autos.arff || 205 || 26 || 7 || 0.959 ± 0.003 || 0.956 ± 0.003 || 0.003 || WekaRF || 84.48 ± 1.31 || 82.87 ± 1.88 || 0.058 || noone ||
