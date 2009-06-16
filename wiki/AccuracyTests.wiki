@@ -3,7 +3,7 @@
 
 = Summary =
 
-I have downloaded a set of arff files with UCI repository datasets from [http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html], and used the built-in Benchmark tool to compare classification accuracy of the original Weka RF to !FastRandomForest on 33 datasets.
+I have downloaded a set of arff files with UCI repository datasets from [http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html], and used the built-in Benchmark tool to compare classification accuracy of the original Weka RF (ver. 3-5-8) to !FastRandomForest on 33 datasets.
 
 Ten runs of tenfold crossvalidation were used. I've set the forest size to 100 trees. The Benchmark tool uses Weka's Corrected Paired t-Tester to determine winners in
   * classification accuracy, as % instances classified correctly
