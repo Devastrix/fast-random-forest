@@ -15,7 +15,7 @@ In brief, you can expect a *1.5-fold reduction in memory use*, and a 2.4x speedu
 
 I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF (ver. 3-6-1) to single-thread mode of !FastRandomForest on 34 datasets. The forest size was set to 100 trees, and 10 runs of 10-fold crossvalidation were used. 
 
-Average speed-up factor: in single-threaded mode FastRF is *2.3 x* faster.
+Average speed-up factor: in single-threaded mode FastRF is *2.4 x* faster.
 
 || *dataset* || *numInstances* || *numAttributes* || *numClasses* || *speedup* ||
 || anneal.arff || 898 || 39 || 6 || 1.1 x ||
