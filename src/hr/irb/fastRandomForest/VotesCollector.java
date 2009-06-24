@@ -21,86 +21,80 @@
 
 package hr.irb.fastRandomForest;
 
-import java.util.concurrent.Callable;
 import weka.classifiers.Classifier;
-import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
+
+import java.util.concurrent.Callable;
 
 /**
  * Used to retrieve the out-of-bag vote of an ensemble classifier for a single
  * instance. In classification, does not return the class distribution but only
  * class index of the dominant class.
- *
+ * <p/>
  * Implements callable so it can be run in multiple threads.
  *
  * @author Fran Supek
  */
-public class VotesCollector implements Callable<Double> {
+public class VotesCollector implements Callable<Double>{
 
   protected final Classifier[] m_Classifiers;
   protected final int instanceIdx;
   protected final Instances data;
   protected final boolean[][] inBag;
 
-
   public VotesCollector(Classifier[] m_Classifiers, int instanceIdx,
-          Instances data, boolean[][] inBag) {
+                        Instances data, boolean[][] inBag){
 
     this.m_Classifiers = m_Classifiers;
     this.instanceIdx = instanceIdx;
     this.data = data;
     this.inBag = inBag;
-
   }
 
-
   /** Determine predictions for a single instance. */
-  @Override
-  public Double call() throws Exception {
+  public Double call() throws Exception{
 
     boolean regression = data.classAttribute().isNumeric();
 
     double[] classProbs = null;
     double regrValue = 0;
 
-    if (!regression)
+    if(!regression)
       classProbs = new double[data.numClasses()];
 
     int numVotes = 0;
-    for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
+    for(int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++){
 
-      if (inBag[treeIdx][instanceIdx])
+      if(inBag[treeIdx][instanceIdx])
         continue;
-      
+
       numVotes++;
 
-      if (regression) {
+      if(regression){
 
         double curVote =
-                m_Classifiers[treeIdx].classifyInstance( data.instance(instanceIdx) );
+          m_Classifiers[treeIdx].classifyInstance(data.instance(instanceIdx));
         regrValue += curVote;
 
-      } else {
-        
-        double[] curDist = m_Classifiers[treeIdx].distributionForInstance( data.instance(instanceIdx) );
+      }
+      else{
 
-        for ( int classIdx = 0; classIdx < curDist.length; classIdx++ )
-          classProbs[ classIdx ] += curDist[ classIdx ];
+        double[] curDist = m_Classifiers[treeIdx].distributionForInstance(data.instance(instanceIdx));
+
+        for(int classIdx = 0; classIdx < curDist.length; classIdx++)
+          classProbs[classIdx] += curDist[classIdx];
 
       }
-      
+
     }
 
     double vote;
-    if (regression)
+    if(regression)
       vote = regrValue / numVotes;         // average - for regression
     else
       vote = Utils.maxIndex(classProbs);   // consensus - for classification
 
     return vote;
-
   }
-
-  
 }

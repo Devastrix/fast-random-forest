@@ -21,10 +21,10 @@
 
 package hr.irb.fastRandomForest;
 
+import weka.core.Instances;
+
 import java.util.Arrays;
 import java.util.Random;
-import weka.core.Instances;
-import weka.core.Utils;
 
 /**
  * Stores a dataset that in FastRandomTrees use for training. The data points
@@ -304,8 +304,4 @@ public class DataCache {
     return r;
     
   }
-   
-  
-  
 }
-
