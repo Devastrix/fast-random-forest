@@ -23,19 +23,24 @@
 
 package hr.irb.fastRandomForest;
 
+import weka.core.Instances;
+import weka.core.Instance;
+
+import java.util.Random;
+
 /**
  * Utility functions for sorting float (single-precision) arrays, and for
  * normalizing double arrays. Adapted from weka.core.Utils, version 1.57.
- * 
+ *
  * @author Eibe Frank - original code
- * @author Yong Wang - original code 
- * @author Len Trigg - original code 
+ * @author Yong Wang - original code
+ * @author Len Trigg - original code
  * @author Julien Prados - original code
  * @author Fran Supek (fran.supek[AT]irb.hr) - adapted code
  */
-public class FastRfUtils {
+public class FastRfUtils{
 
- 
+
   /**
    * Sorts a given array of floats in ascending order and returns an
    * array of integers with the positions of the elements of the
@@ -45,44 +50,44 @@ public class FastRfUtils {
    * sorting.
    *
    * @param array this array is not changed by the method!
+   *
    * @return an array of integers with the positions in the sorted
-   * array.  
+   *         array.
    */
-  public static /*@pure@*/ int[] sort(/*@non_null@*/ float[] array) {
+  public static /*@pure@*/ int[] sort(/*@non_null@*/ float[] array){
     int[] index = new int[array.length];
-    for (int i = 0; i < index.length; i++) 
+    for(int i = 0; i < index.length; i++)
       index[i] = i;
     array = array.clone();
     quickSort(array, index, 0, array.length - 1);
     return index;
-  }    
-  
+  }
 
-  
+
   /**
    * Partitions the instances around a pivot. Used by quicksort and
    * kthSmallestValue.
    *
    * @param array the array of doubles to be sorted
    * @param index the index into the array of doubles
-   * @param l the first index of the subset 
-   * @param r the last index of the subset 
+   * @param l     the first index of the subset
+   * @param r     the last index of the subset
    *
    * @return the index of the middle element
    */
-  private static int partition(float[] array, int[] index, int l, int r) {
-    
+  private static int partition(float[] array, int[] index, int l, int r){
+
     double pivot = array[index[(l + r) / 2]];
     int help;
 
-    while (l < r) {
-      while ((array[index[l]] < pivot) && (l < r)) {
+    while(l < r){
+      while((array[index[l]] < pivot) && (l < r)){
         l++;
       }
-      while ((array[index[r]] > pivot) && (l < r)) {
+      while((array[index[r]] > pivot) && (l < r)){
         r--;
       }
-      if (l < r) {
+      if(l < r){
         help = index[l];
         index[l] = index[r];
         index[r] = help;
@@ -90,80 +95,123 @@ public class FastRfUtils {
         r--;
       }
     }
-    if ((l == r) && (array[index[r]] > pivot)) {
+    if((l == r) && (array[index[r]] > pivot)){
       r--;
-    } 
+    }
 
     return r;
-  } 
-  
-  
+  }
+
+
   /**
    * Implements quicksort according to Manber's "Introduction to
    * Algorithms".
    *
    * @param array the array of doubles to be sorted
    * @param index the index into the array of doubles
-   * @param left the first index of the subset to be sorted
+   * @param left  the first index of the subset to be sorted
    * @param right the last index of the subset to be sorted
    */
   //@ requires 0 <= first && first <= right && right < array.length;
   //@ requires (\forall int i; 0 <= i && i < index.length; 0 <= index[i] && index[i] < array.length);
   //@ requires array != index;
   //  assignable index;
-  private static void quickSort(/*@non_null@*/ float[] array, /*@non_null@*/ int[] index, 
-                                int left, int right) {
+  private static void quickSort(/*@non_null@*/ float[] array, /*@non_null@*/ int[] index,
+                                int left, int right){
 
-    if (left < right) {
+    if(left < right){
       int middle = partition(array, index, left, right);
       quickSort(array, index, left, middle);
       quickSort(array, index, middle + 1, right);
     }
-  }  
-  
-  
-  
+  }
+
+
   /**
    * Normalizes the doubles in the array by their sum.
-   * 
+   * <p/>
    * If supplied an array full of zeroes, does not modify the array.
    *
    * @param doubles the array of double
-   * @exception IllegalArgumentException if sum is NaN
+   *
+   * @throws IllegalArgumentException if sum is NaN
    */
-  public static void normalize(double[] doubles) {
+  public static void normalize(double[] doubles){
 
     double sum = 0;
-    for (int i = 0; i < doubles.length; i++) {
+    for(int i = 0; i < doubles.length; i++){
       sum += doubles[i];
     }
     normalize(doubles, sum);
   }
 
 
-  
   /**
    * Normalizes the doubles in the array using the given value.
-   * 
+   * <p/>
    * If supplied an array full of zeroes, does not modify the array.
    *
    * @param doubles the array of double
-   * @param sum the value by which the doubles are to be normalized
-   * @exception IllegalArgumentException if sum is zero or NaN
+   * @param sum     the value by which the doubles are to be normalized
+   *
+   * @throws IllegalArgumentException if sum is zero or NaN
    */
-  private static void normalize(double[] doubles, double sum) {
+  private static void normalize(double[] doubles, double sum){
 
-    if (Double.isNaN(sum)) {
+    if(Double.isNaN(sum)){
       throw new IllegalArgumentException("Can't normalize array. Sum is NaN.");
     }
-    if (sum == 0) {
-      return; 
+    if(sum == 0){
+      return;
     }
-    for (int i = 0; i < doubles.length; i++) {
+    for(int i = 0; i < doubles.length; i++){
       doubles[i] /= sum;
     }
-    
-  }  
-  
-  
+  }
+
+  /**
+   * Produces a random permutation of the values of an attribute in a dataset using Knuth shuffle.
+   *
+   * @param data     the dataset
+   * @param attIndex the attribute index
+   * @param random   the rng
+   *
+   * @return a copy of the dataset with the feature values randomly permuted
+   */
+  public static Instances scramble(Instances data, int attIndex, Random random){
+
+    data = new Instances(data);
+
+    for(int i = 0; i < data.numInstances(); i++)
+      swap(data.instance(i), data.instance(random.nextInt(data.numInstances())), attIndex);
+
+    return data;
+  }
+
+  /**
+   * Swap the value of an attribute between two instances
+   *
+   * @param i1     one instance
+   * @param i2     another instance
+   * @param fIndex the attribute index
+   */
+  private static void swap(Instance i1, Instance i2, int fIndex){
+    double tmp = i1.value(fIndex);
+    i1.setValue(fIndex, i2.value(fIndex));
+    i2.setValue(fIndex, tmp);
+  }
+
+  /**
+   * Load a dataset into memory.
+   *
+   * @param location the location of the dataset
+   *
+   * @return the dataset
+   */
+  public static Instances readInstances(String location) throws Exception{
+    Instances data = new weka.core.converters.ConverterUtils.DataSource(location).getDataSet();
+    if(data.classIndex() == -1)
+      data.setClassIndex(data.numAttributes() - 1);
+    return data;
+  }
 }
