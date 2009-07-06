@@ -196,6 +196,9 @@ public class FastRfUtils {
 
   /**
    * Produces a random permutation of the values of an attribute in a dataset using Knuth shuffle.
+   * <p/>
+   * Copies back the current values of the previously scrambled attribute and uses the given permutation
+   * to scramble the values of the new attribute all by copying from the original dataset.
    *
    * @param src      the source dataset
    * @param dst      the scrambled dataset
@@ -216,38 +219,6 @@ public class FastRfUtils {
     }
 
     return dst;
-  }
-
-  /**
-   * Produces a random permutation of the values of an attribute in a dataset using Knuth shuffle.
-   *
-   * @param data     the dataset
-   * @param attIndex the attribute index
-   * @param random   the rng
-   *
-   * @return a copy of the dataset with the feature values randomly permuted
-   */
-  public static Instances scramble(Instances data, int attIndex, Random random) {
-
-    data = new Instances(data);
-
-    for (int i = 0; i < data.numInstances(); i++)
-      swap(data.instance(i), data.instance(random.nextInt(data.numInstances())), attIndex);
-
-    return data;
-  }
-
-  /**
-   * Swap the value of an attribute between two instances
-   *
-   * @param i1     one instance
-   * @param i2     another instance
-   * @param fIndex the attribute index
-   */
-  private static void swap(Instance i1, Instance i2, int fIndex) {
-    double tmp = i1.value(fIndex);
-    i1.setValue(fIndex, i2.value(fIndex));
-    i2.setValue(fIndex, tmp);
   }
 
   /**
