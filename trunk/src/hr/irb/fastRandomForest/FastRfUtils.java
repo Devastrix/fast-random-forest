@@ -23,8 +23,8 @@
 
 package hr.irb.fastRandomForest;
 
-import weka.core.Instances;
 import weka.core.Instance;
+import weka.core.Instances;
 
 import java.util.Random;
 
@@ -38,7 +38,7 @@ import java.util.Random;
  * @author Julien Prados - original code
  * @author Fran Supek (fran.supek[AT]irb.hr) - adapted code
  */
-public class FastRfUtils{
+public class FastRfUtils {
 
 
   /**
@@ -54,9 +54,9 @@ public class FastRfUtils{
    * @return an array of integers with the positions in the sorted
    *         array.
    */
-  public static /*@pure@*/ int[] sort(/*@non_null@*/ float[] array){
+  public static /*@pure@*/ int[] sort(/*@non_null@*/ float[] array) {
     int[] index = new int[array.length];
-    for(int i = 0; i < index.length; i++)
+    for (int i = 0; i < index.length; i++)
       index[i] = i;
     array = array.clone();
     quickSort(array, index, 0, array.length - 1);
@@ -75,19 +75,19 @@ public class FastRfUtils{
    *
    * @return the index of the middle element
    */
-  private static int partition(float[] array, int[] index, int l, int r){
+  private static int partition(float[] array, int[] index, int l, int r) {
 
     double pivot = array[index[(l + r) / 2]];
     int help;
 
-    while(l < r){
-      while((array[index[l]] < pivot) && (l < r)){
+    while (l < r) {
+      while ((array[index[l]] < pivot) && (l < r)) {
         l++;
       }
-      while((array[index[r]] > pivot) && (l < r)){
+      while ((array[index[r]] > pivot) && (l < r)) {
         r--;
       }
-      if(l < r){
+      if (l < r) {
         help = index[l];
         index[l] = index[r];
         index[r] = help;
@@ -95,7 +95,7 @@ public class FastRfUtils{
         r--;
       }
     }
-    if((l == r) && (array[index[r]] > pivot)){
+    if ((l == r) && (array[index[r]] > pivot)) {
       r--;
     }
 
@@ -117,9 +117,9 @@ public class FastRfUtils{
   //@ requires array != index;
   //  assignable index;
   private static void quickSort(/*@non_null@*/ float[] array, /*@non_null@*/ int[] index,
-                                int left, int right){
+                                int left, int right) {
 
-    if(left < right){
+    if (left < right) {
       int middle = partition(array, index, left, right);
       quickSort(array, index, left, middle);
       quickSort(array, index, middle + 1, right);
@@ -136,10 +136,10 @@ public class FastRfUtils{
    *
    * @throws IllegalArgumentException if sum is NaN
    */
-  public static void normalize(double[] doubles){
+  public static void normalize(double[] doubles) {
 
     double sum = 0;
-    for(int i = 0; i < doubles.length; i++){
+    for (int i = 0; i < doubles.length; i++) {
       sum += doubles[i];
     }
     normalize(doubles, sum);
@@ -156,17 +156,66 @@ public class FastRfUtils{
    *
    * @throws IllegalArgumentException if sum is zero or NaN
    */
-  private static void normalize(double[] doubles, double sum){
+  private static void normalize(double[] doubles, double sum) {
 
-    if(Double.isNaN(sum)){
+    if (Double.isNaN(sum)) {
       throw new IllegalArgumentException("Can't normalize array. Sum is NaN.");
     }
-    if(sum == 0){
+    if (sum == 0) {
       return;
     }
-    for(int i = 0; i < doubles.length; i++){
+    for (int i = 0; i < doubles.length; i++) {
       doubles[i] /= sum;
     }
+  }
+
+  /**
+   * Produces a random permutation using Knuth shuffle.
+   *
+   * @param numElems the size of the permutation
+   * @param rng      the random number generator
+   *
+   * @return a random permutation
+   */
+  public static int[] randomPermutation(int numElems, Random rng) {
+
+    int[] permutation = new int[numElems];
+
+    for (int i = 0; i < numElems; i++)
+      permutation[i] = i;
+
+    for (int i = 0; i < numElems - 1; i++) {
+      int next = rng.nextInt(numElems);
+      int tmp = permutation[i];
+      permutation[i] = permutation[next];
+      permutation[next] = tmp;
+    }
+
+    return permutation;
+  }
+
+  /**
+   * Produces a random permutation of the values of an attribute in a dataset using Knuth shuffle.
+   *
+   * @param src      the source dataset
+   * @param dst      the scrambled dataset
+   * @param attIndex the attribute index
+   * @param perm     the random permutation
+   *
+   * @return fluent
+   */
+  public static Instances scramble(Instances src, Instances dst, final int attIndex, int[] perm) {
+
+    for (int i = 0; i < src.numInstances(); i++) {
+
+      Instance scrambled = dst.instance(i);
+
+      if (attIndex > 0)
+        scrambled.setValue(attIndex - 1, src.instance(i).value(attIndex - 1));
+      scrambled.setValue(attIndex, src.instance(perm[i]).value(attIndex));
+    }
+
+    return dst;
   }
 
   /**
@@ -178,11 +227,11 @@ public class FastRfUtils{
    *
    * @return a copy of the dataset with the feature values randomly permuted
    */
-  public static Instances scramble(Instances data, int attIndex, Random random){
+  public static Instances scramble(Instances data, int attIndex, Random random) {
 
     data = new Instances(data);
 
-    for(int i = 0; i < data.numInstances(); i++)
+    for (int i = 0; i < data.numInstances(); i++)
       swap(data.instance(i), data.instance(random.nextInt(data.numInstances())), attIndex);
 
     return data;
@@ -195,7 +244,7 @@ public class FastRfUtils{
    * @param i2     another instance
    * @param fIndex the attribute index
    */
-  private static void swap(Instance i1, Instance i2, int fIndex){
+  private static void swap(Instance i1, Instance i2, int fIndex) {
     double tmp = i1.value(fIndex);
     i1.setValue(fIndex, i2.value(fIndex));
     i2.setValue(fIndex, tmp);
@@ -208,9 +257,9 @@ public class FastRfUtils{
    *
    * @return the dataset
    */
-  public static Instances readInstances(String location) throws Exception{
+  public static Instances readInstances(String location) throws Exception {
     Instances data = new weka.core.converters.ConverterUtils.DataSource(location).getDataSet();
-    if(data.classIndex() == -1)
+    if (data.classIndex() == -1)
       data.setClassIndex(data.numAttributes() - 1);
     return data;
   }
