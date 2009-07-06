@@ -70,9 +70,11 @@ import java.util.concurrent.Future;
  * @version $Revision: 0.98$
  */
 class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
-  implements WeightedInstancesHandler, AdditionalMeasureProducer{
+  implements WeightedInstancesHandler, AdditionalMeasureProducer {
 
-  /** for serialization */
+  /**
+   * for serialization
+   */
   static final long serialVersionUID = -505879962237199702L;
 
   /**
@@ -90,7 +92,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @throws Exception if the classifier could not be built successfully
    */
   public void buildClassifier(Instances data, int numThreads,
-                              FastRandomForest motherForest) throws Exception{
+                              FastRandomForest motherForest) throws Exception {
 
     // can classifier handle the vals?
     getCapabilities().testWithFail(data);
@@ -99,7 +101,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     data = new Instances(data);
     data.deleteWithMissingClass();
 
-    if(!(m_Classifier instanceof FastRandomTree))
+    if (!(m_Classifier instanceof FastRandomTree))
       throw new IllegalArgumentException("The FastRfBagging class accepts " +
         "only FastRandomTree as its base classifier.");
 
@@ -108,7 +110,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
      * one tree in m_Classifier - this is what the super.buildClassifier(data)
      * normally does. */
     m_Classifiers = new Classifier[m_NumIterations];
-    for(int i = 0; i < m_Classifiers.length; i++){
+    for (int i = 0; i < m_Classifiers.length; i++) {
       FastRandomTree curTree = new FastRandomTree();
       // all parameters for training will be looked up in the motherForest (maxDepth, k_Value)
       curTree.m_MotherForest = motherForest;
@@ -118,7 +120,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     // this was SLOW.. takes approx 1/2 time as training the forest afterwards (!!!)
     // super.buildClassifier(data);
 
-    if(m_CalcOutOfBag && (m_BagSizePercent != 100)){
+    if (m_CalcOutOfBag && (m_BagSizePercent != 100)) {
       throw new IllegalArgumentException("Bag size needs to be 100% if " +
         "out-of-bag error is to be calculated!");
     }
@@ -138,9 +140,9 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     List<Future<?>> futures =
       new ArrayList<Future<?>>(m_Classifiers.length);
 
-    try{
+    try {
 
-      for(int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++){
+      for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
 
         // create the in-bag dataset (and be sure to remember what's in bag)
         // for computing the out-of-bag error later
@@ -150,16 +152,15 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
         inBag[treeIdx] = bagData.inBag;
 
         // build the classifier
-        if(m_Classifiers[treeIdx] instanceof FastRandomTree){
+        if (m_Classifiers[treeIdx] instanceof FastRandomTree) {
 
-          FastRandomTree aTree = (FastRandomTree)m_Classifiers[treeIdx];
+          FastRandomTree aTree = (FastRandomTree) m_Classifiers[treeIdx];
           aTree.data = bagData;
 
           Future<?> future = threadPool.submit(aTree);
           futures.add(future);
 
-        }
-        else{
+        } else {
           throw new IllegalArgumentException("The FastRfBagging class accepts " +
             "only FastRandomTree as its base classifier.");
         }
@@ -167,30 +168,34 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       }
 
       // make sure all trees have been trained before proceeding
-      for(int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++){
+      for (int treeIdx = 0; treeIdx < m_Classifiers.length; treeIdx++) {
         futures.get(treeIdx).get();
 
       }
 
       // calc OOB error?
-      if(getCalcOutOfBag() || getComputeImportances())
+      if (getCalcOutOfBag() || getComputeImportances())
         m_OutOfBagError = computeOOBError(data, inBag, threadPool);
       else
         m_OutOfBagError = 0;
 
       //calc feature importances
-      _featureImportances = null;
-      if(getComputeImportances()){
-        _featureImportances = new double[data.numAttributes()];
-        for(int j = 0; j < data.numAttributes(); j++)
-          if(j != data.classIndex())
-            _featureImportances[j] = computeOOBError(FastRfUtils.scramble(data, j, random), inBag, threadPool) - m_OutOfBagError;
+      m_FeatureImportances = null;
+      if (getComputeImportances()) {
+        m_FeatureImportances = new double[data.numAttributes()];
+        Instances dataCopy = new Instances(data); //To scramble
+        int[] permutation = FastRfUtils.randomPermutation(data.numInstances(), random);
+        for (int j = 0; j < data.numAttributes(); j++)
+          if (j != data.classIndex()) {
+            double sError = computeOOBError(FastRfUtils.scramble(data, dataCopy, j, permutation), inBag, threadPool);
+            m_FeatureImportances[j] = sError - m_OutOfBagError;
+          }
       }
 
       threadPool.shutdown();
 
     }
-    finally{
+    finally {
       threadPool.shutdownNow();
     }
   }
@@ -206,13 +211,13 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    */
   private double computeOOBError(Instances data,
                                  boolean[][] inBag,
-                                 ExecutorService threadPool) throws InterruptedException, ExecutionException{
+                                 ExecutorService threadPool) throws InterruptedException, ExecutionException {
 
     boolean numeric = data.classAttribute().isNumeric();
 
     List<Future<Double>> votes =
       new ArrayList<Future<Double>>(data.numInstances());
-    for(int i = 0; i < data.numInstances(); i++){
+    for (int i = 0; i < data.numInstances(); i++) {
       VotesCollector aCollector = new VotesCollector(m_Classifiers, i, data, inBag);
       votes.add(threadPool.submit(aCollector));
     }
@@ -221,17 +226,16 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     double outOfBagCount = 0.0;
     double errorSum = 0.0;
 
-    for(int i = 0; i < data.numInstances(); i++){
+    for (int i = 0; i < data.numInstances(); i++) {
 
       double vote = votes.get(i).get();
 
       // error for instance
       outOfBagCount += data.instance(i).weight();
-      if(numeric){
+      if (numeric) {
         errorSum += StrictMath.abs(vote - data.instance(i).classValue()) * data.instance(i).weight();
-      }
-      else{
-        if(vote != data.instance(i).classValue())
+      } else {
+        if (vote != data.instance(i).classValue())
           errorSum += data.instance(i).weight();
       }
 
@@ -244,47 +248,67 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
   // Feature importances stuff
   ////////////////////////////
 
-  /** The value of the features importances. */
-  private double[] _featureImportances;
-  /** Whether compute the importances or not. */
+  /**
+   * The value of the features importances.
+   */
+  private double[] m_FeatureImportances;
+  /**
+   * Whether compute the importances or not.
+   */
   private boolean _computeImportances = true;
 
-  /** @return compute feature importances? */
-  public boolean getComputeImportances(){
+  /**
+   * @return compute feature importances?
+   */
+  public boolean getComputeImportances() {
     return _computeImportances;
   }
 
-  /** @param computeImportances compute feature importances? */
-  public void setComputeImportances(boolean computeImportances){
+  /**
+   * @param computeImportances compute feature importances?
+   */
+  public void setComputeImportances(boolean computeImportances) {
     _computeImportances = computeImportances;
   }
 
-  /** @return unnormalized feature importances */
-  public double[] getFeatureImportances(){
-    return _featureImportances;
+  /**
+   * @return unnormalized feature importances
+   */
+  public double[] getFeatureImportances() {
+    return m_FeatureImportances;
   }
 
   ////////////////////////////
   // /Feature importances stuff
   ////////////////////////////
 
-  /** Not supported. */
+  /**
+   * Not supported.
+   */
   @Override
-  public void buildClassifier(Instances data) throws Exception{
+  public void buildClassifier(Instances data) throws Exception {
     throw new Exception("FastRfBagging can be built only from within a FastRandomForest.");
   }
 
-  /** The size of each bag sample, as a percentage of the training size */
+  /**
+   * The size of each bag sample, as a percentage of the training size
+   */
   protected int m_BagSizePercent = 100;
 
-  /** Whether to calculate the out of bag error */
+  /**
+   * Whether to calculate the out of bag error
+   */
   protected boolean m_CalcOutOfBag = true;
 
-  /** The out of bag error that has been calculated */
+  /**
+   * The out of bag error that has been calculated
+   */
   protected double m_OutOfBagError;
 
-  /** Constructor. */
-  public FastRfBagging(){
+  /**
+   * Constructor.
+   */
+  public FastRfBagging() {
 
     m_Classifier = new hr.irb.fastRandomForest.FastRandomTree();
   }
@@ -296,7 +320,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return a description suitable for
    *         displaying in the explorer/experimenter gui
    */
-  public String globalInfo(){
+  public String globalInfo() {
 
     return "Class for bagging a classifier to reduce variance. Can do classification "
       + "and regression depending on the base learner. \n\n";
@@ -309,7 +333,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return the default classifier classname
    */
   @Override
-  protected String defaultClassifierString(){
+  protected String defaultClassifierString() {
     return "hr.irb.fastRandomForest.FastRfTree";
   }
 
@@ -320,7 +344,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return an enumeration of all the available options.
    */
   @Override
-  public Enumeration listOptions(){
+  public Enumeration listOptions() {
 
     Vector newVector = new Vector(2);
 
@@ -333,7 +357,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       "O", 0, "-O"));
 
     Enumeration enu = super.listOptions();
-    while(enu.hasMoreElements()){
+    while (enu.hasMoreElements()) {
       newVector.addElement(enu.nextElement());
     }
     return newVector.elements();
@@ -378,13 +402,12 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @throws Exception if an option is not supported
    */
   @Override
-  public void setOptions(String[] options) throws Exception{
+  public void setOptions(String[] options) throws Exception {
 
     String bagSize = Utils.getOption('P', options);
-    if(bagSize.length() != 0){
+    if (bagSize.length() != 0) {
       setBagSizePercent(Integer.parseInt(bagSize));
-    }
-    else{
+    } else {
       setBagSizePercent(100);
     }
 
@@ -399,7 +422,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return an array of strings suitable for passing to setOptions
    */
   @Override
-  public String[] getOptions(){
+  public String[] getOptions() {
 
 
     String[] superOptions = super.getOptions();
@@ -409,7 +432,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     options[current++] = "-P";
     options[current++] = "" + getBagSizePercent();
 
-    if(getCalcOutOfBag()){
+    if (getCalcOutOfBag()) {
       options[current++] = "-O";
     }
 
@@ -417,7 +440,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       superOptions.length);
 
     current += superOptions.length;
-    while(current < options.length){
+    while (current < options.length) {
       options[current++] = "";
     }
     return options;
@@ -429,7 +452,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return tip text for this property suitable for
    *         displaying in the explorer/experimenter gui
    */
-  public String bagSizePercentTipText(){
+  public String bagSizePercentTipText() {
     return "Size of each bag, as a percentage of the training set size.";
   }
 
@@ -438,7 +461,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @return the bag size, as a percentage.
    */
-  public int getBagSizePercent(){
+  public int getBagSizePercent() {
 
     return m_BagSizePercent;
   }
@@ -448,7 +471,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @param newBagSizePercent the bag size, as a percentage.
    */
-  public void setBagSizePercent(int newBagSizePercent){
+  public void setBagSizePercent(int newBagSizePercent) {
 
     m_BagSizePercent = newBagSizePercent;
   }
@@ -459,7 +482,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return tip text for this property suitable for
    *         displaying in the explorer/experimenter gui
    */
-  public String calcOutOfBagTipText(){
+  public String calcOutOfBagTipText() {
     return "Whether the out-of-bag error is calculated.";
   }
 
@@ -468,7 +491,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @param calcOutOfBag whether to calculate the out of bag error
    */
-  public void setCalcOutOfBag(boolean calcOutOfBag){
+  public void setCalcOutOfBag(boolean calcOutOfBag) {
 
     m_CalcOutOfBag = calcOutOfBag;
   }
@@ -478,7 +501,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @return whether the out of bag error is calculated
    */
-  public boolean getCalcOutOfBag(){
+  public boolean getCalcOutOfBag() {
 
     return m_CalcOutOfBag;
   }
@@ -489,7 +512,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @return the out of bag error
    */
-  public double measureOutOfBagError(){
+  public double measureOutOfBagError() {
 
     return m_OutOfBagError;
   }
@@ -499,7 +522,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @return an enumeration of the measure names
    */
-  public Enumeration enumerateMeasures(){
+  public Enumeration enumerateMeasures() {
 
     Vector newVector = new Vector(1);
     newVector.addElement("measureOutOfBagError");
@@ -515,12 +538,11 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @throws IllegalArgumentException if the named measure is not supported
    */
-  public double getMeasure(String additionalMeasureName){
+  public double getMeasure(String additionalMeasureName) {
 
-    if(additionalMeasureName.equalsIgnoreCase("measureOutOfBagError")){
+    if (additionalMeasureName.equalsIgnoreCase("measureOutOfBagError")) {
       return measureOutOfBagError();
-    }
-    else{
+    } else {
       throw new IllegalArgumentException(additionalMeasureName
         + " not supported (Bagging)");
     }
@@ -538,29 +560,26 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @throws Exception if distribution can't be computed successfully
    */
   @Override
-  public double[] distributionForInstance(Instance instance) throws Exception{
+  public double[] distributionForInstance(Instance instance) throws Exception {
 
     double[] sums = new double[instance.numClasses()], newProbs;
 
-    for(int i = 0; i < m_NumIterations; i++){
-      if(instance.classAttribute().isNumeric()){
+    for (int i = 0; i < m_NumIterations; i++) {
+      if (instance.classAttribute().isNumeric()) {
         sums[0] += m_Classifiers[i].classifyInstance(instance);
-      }
-      else{
+      } else {
         newProbs = m_Classifiers[i].distributionForInstance(instance);
-        for(int j = 0; j < newProbs.length; j++)
+        for (int j = 0; j < newProbs.length; j++)
           sums[j] += newProbs[j];
       }
     }
 
-    if(instance.classAttribute().isNumeric()){
-      sums[0] /= (double)m_NumIterations;
+    if (instance.classAttribute().isNumeric()) {
+      sums[0] /= (double) m_NumIterations;
       return sums;
-    }
-    else if(Utils.eq(Utils.sum(sums), 0)){
+    } else if (Utils.eq(Utils.sum(sums), 0)) {
       return sums;
-    }
-    else{
+    } else {
       Utils.normalize(sums);
       return sums;
     }
@@ -573,17 +592,17 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    * @return description of the bagged classifier as a string
    */
   @Override
-  public String toString(){
+  public String toString() {
 
-    if(m_Classifiers == null){
+    if (m_Classifiers == null) {
       return "FastRfBagging: No model built yet.";
     }
     StringBuffer text = new StringBuffer();
     text.append("All the base classifiers: \n\n");
-    for(int i = 0; i < m_Classifiers.length; i++)
+    for (int i = 0; i < m_Classifiers.length; i++)
       text.append(m_Classifiers[i].toString() + "\n\n");
 
-    if(m_CalcOutOfBag){
+    if (m_CalcOutOfBag) {
       text.append("Out of bag error: "
         + Utils.doubleToString(m_OutOfBagError, 4)
         + "\n\n");
@@ -597,11 +616,11 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @param argv the options
    */
-  public static void main(String[] argv){
+  public static void main(String[] argv) {
     runClassifier(new FastRfBagging(), argv);
   }
 
-  public String getRevision(){
+  public String getRevision() {
     return RevisionUtils.extract("$Revision: 0.98$");
   }
 }
