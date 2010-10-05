@@ -2,7 +2,7 @@ package hr.irb.fastRandomForest;
 
 import weka.attributeSelection.ASEvaluation;
 import weka.attributeSelection.AttributeEvaluator;
-import weka.classifiers.Classifier;
+import weka.classifiers.AbstractClassifier;
 import weka.core.Capabilities;
 import weka.core.Instances;
 import weka.core.RevisionUtils;
@@ -38,7 +38,7 @@ public class FRFAttributeEval extends ASEvaluation implements AttributeEvaluator
 
   /** {@inheritDoc} */
   public void buildEvaluator(Instances data) throws Exception {
-    FastRandomForest forest = (FastRandomForest) Classifier.makeCopy(m_frfProto);
+    FastRandomForest forest = (FastRandomForest) AbstractClassifier.makeCopy(m_frfProto);
     forest.buildClassifier(data);
     m_Importances = forest.getFeatureImportances();
   }

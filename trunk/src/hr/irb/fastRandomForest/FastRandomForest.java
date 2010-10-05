@@ -23,7 +23,7 @@
 
 package hr.irb.fastRandomForest;
 
-import weka.classifiers.Classifier;
+import weka.classifiers.AbstractClassifier;
 import weka.core.*;
 import weka.core.TechnicalInformation.Field;
 import weka.core.TechnicalInformation.Type;
@@ -93,7 +93,7 @@ import java.util.Vector;
  * @version $Revision: 0.98$
  */
 public class FastRandomForest
-  extends Classifier
+  extends AbstractClassifier
   implements OptionHandler, Randomizable, WeightedInstancesHandler,
              AdditionalMeasureProducer, TechnicalInformationHandler{
 
@@ -128,7 +128,7 @@ public class FastRandomForest
   protected Instances m_Info = null;
 
   /** a ZeroR model in case no model can be built from the data */
-  protected Classifier m_ZeroR;
+  protected AbstractClassifier m_ZeroR;
 
   /**
    * Returns a string describing classifier
