@@ -83,7 +83,20 @@ public class DataCache {
   protected Random reusableRandomGenerator = null;
 
 
-
+  /** Randomizes one attribute in the vals[][]; returns a copy of the vals[] 
+   * before randomization. */
+  public float[] scrambleOneAttribute( int attIndex, Random random ) {
+    float[] toReturn = Arrays.copyOf( vals[attIndex], vals[attIndex].length );
+    for ( int i=0; i < vals[attIndex].length; i++ ) {
+      int swapWith = random.nextInt(vals[attIndex].length);
+      float temp = vals[attIndex][i];
+      vals[attIndex][i] = vals[attIndex][swapWith];
+      vals[attIndex][swapWith] = temp;
+    }
+    return toReturn;
+  }
+  
+  
   /**
    * Creates a DataCache by copying data from a weka.core.Instances object.
    */
@@ -109,7 +122,7 @@ public class DataCache {
     for (int a = 0; a < numAttributes; a++) {
       for (int i = 0; i < numInstances; i++) {
         if (origData.instance(i).isMissing(a))
-          vals[a][i] = Float.MAX_VALUE;
+          vals[a][i] = Float.MAX_VALUE;  // to make sure missing values go to the end
         else
           vals[a][i] = (float) origData.instance(i).value(a);  // deep copy
       }
@@ -128,18 +141,20 @@ public class DataCache {
 
     for (int a = 0; a < numAttributes; a++) { // ================= attr by attr
 
-      if (a == classIndex)
+      if (a == classIndex) 
         continue;
 
       if (attNumVals[a] > 0) { // ------------------------------------- nominal
 
-        // Handling nominal attributes. Putting indices of
-        // instances with missing values at the end.
+        // Handling nominal attributes: as of FastRF 0.99, they're sorted as well
+        // missing values are coded as Float.MAX_VALUE and go to the end
         
         sortedIndices[a] = new int[numInstances];
-        int count = 0;
+        //int count = 0;
 
-        for (int i = 0; i < numInstances; i++) {
+        sortedIndices[a] = FastRfUtils.sort(vals[a]); 
+        
+        /*for (int i = 0; i < numInstances; i++) {
           if ( !this.isValueMissing(a, i) ) {
             sortedIndices[a][count] = i;
             count++;
@@ -151,7 +166,7 @@ public class DataCache {
             sortedIndices[a][count] = i;
             count++;
           }
-        }
+        }*/
 
       } else { // ----------------------------------------------------- numeric
 

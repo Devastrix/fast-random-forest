@@ -90,7 +90,7 @@ import java.util.Vector;
  *
  * @author Richard Kirkby (rkirkby@cs.waikato.ac.nz) - original code
  * @author Fran Supek (fran.supek[AT]irb.hr) - adapted code
- * @version $Revision: 0.98$
+ * @version $Revision: 0.99$
  */
 public class FastRandomForest
   extends AbstractClassifier
@@ -98,10 +98,10 @@ public class FastRandomForest
              AdditionalMeasureProducer, TechnicalInformationHandler{
 
   /** for serialization */
-  static final long serialVersionUID = 4216839470751428699L;
+  static final long serialVersionUID = 4216839470751428700L;
 
   /** Number of trees in forest. */
-  protected int m_numTrees = 10;
+  protected int m_numTrees = 100;
 
   /**
    * Number of features to consider in random feature selection.
@@ -313,6 +313,35 @@ public class FastRandomForest
     m_NumThreads = value;
   }
 
+  ////////////////////////////
+  // Feature importances stuff
+  ////////////////////////////
+
+  /**
+   * The value of the features importances.
+   */
+  private double[] m_FeatureImportances;
+  
+  /**
+   * Whether to compute the importances or not.
+   */
+  private boolean m_computeImportances = false;
+
+  /**
+   * @return compute feature importances?
+   */
+  public boolean getComputeImportances() {
+    return m_computeImportances;
+  }
+
+  /**
+   * @param computeImportances compute feature importances?
+   */
+  public void setComputeImportances(boolean computeImportances) {
+    m_computeImportances = computeImportances;
+  }
+
+  
 
   /**
    * Gets the out of bag error that was calculated as the classifier was built.
@@ -391,6 +420,10 @@ public class FastRandomForest
         + "\t(default 0)",
       "threads", 1, "-threads <num>"));
 
+    newVector.addElement(new Option(
+      "\tWhether to compute feature importances.\n",
+      "import", 0, "-import"));
+    
     Enumeration enu = super.listOptions();
     while(enu.hasMoreElements()){
       newVector.addElement(enu.nextElement());
@@ -429,6 +462,10 @@ public class FastRandomForest
       result.add("-threads");
       result.add("" + getNumThreads());
     }
+    
+    if (getComputeImportances()) {
+      result.add("-import");
+    }    
 
     options = super.getOptions();
     for(i = 0; i < options.length; i++)
@@ -462,6 +499,9 @@ public class FastRandomForest
    *  Number of simultaneous threads to use.
    *  (default 0 = autodetect number of available cores)</pre>
    * <p/>
+   * <pre> -import
+   *  Compute and output RF feature importances (slow).</pre>
+   * <p/>
    * <pre> -D
    *  If set, classifier is run in debug mode and
    *  may output additional info to the console</pre>
@@ -476,23 +516,21 @@ public class FastRandomForest
     String tmpStr;
 
     tmpStr = Utils.getOption('I', options);
-    if(tmpStr.length() != 0){
+    if ( tmpStr.length() != 0 ) {
       m_numTrees = Integer.parseInt(tmpStr);
-    }
-    else{
+    } else {
       m_numTrees = 10;
     }
 
     tmpStr = Utils.getOption('K', options);
-    if(tmpStr.length() != 0){
+    if ( tmpStr.length() != 0 ) {
       m_numFeatures = Integer.parseInt(tmpStr);
-    }
-    else{
+    } else {
       m_numFeatures = 0;
     }
 
     tmpStr = Utils.getOption('S', options);
-    if(tmpStr.length() != 0){
+    if ( tmpStr.length() != 0 ) {
       setSeed(Integer.parseInt(tmpStr));
     }
     else{
@@ -500,21 +538,20 @@ public class FastRandomForest
     }
 
     tmpStr = Utils.getOption("depth", options);
-    if(tmpStr.length() != 0){
+    if ( tmpStr.length() != 0 ){
       setMaxDepth(Integer.parseInt(tmpStr));
-    }
-    else{
+    } else {
       setMaxDepth(0);
     }
 
-
     tmpStr = Utils.getOption("threads", options);
-    if(tmpStr.length() != 0){
+    if ( tmpStr.length() != 0 ){
       setNumThreads(Integer.parseInt(tmpStr));
-    }
-    else{
+    } else {
       setNumThreads(0);
     }
+
+    setComputeImportances(Utils.getFlag("import", options));
 
     super.setOptions(options);
 
@@ -562,27 +599,30 @@ public class FastRandomForest
     }
 
     /* Save header with attribute info. Can be accessed later by FastRfTrees
-* through their m_MotherForest field. */
+     * through their m_MotherForest field. */
     m_Info = new Instances(data, 0);
 
     m_bagger = new FastRfBagging();
 
-    // Set up the ree options which are held in the motherForest.
+    // Set up the tree options which are held in the motherForest.
     m_KValue = m_numFeatures;
     if(m_KValue > data.numAttributes() - 1) m_KValue = data.numAttributes() - 1;
     if(m_KValue < 1) m_KValue = (int)Utils.log2(data.numAttributes()) + 1;
 
     FastRandomTree rTree = new FastRandomTree();
     rTree.m_MotherForest = this; // allows to retrieve KValue and MaxDepth
-
+    // some temporary arrays which need to be separate for every tree, so
+    // that the trees can be trained in parallel in different threads
+    
     // set up the bagger and build the forest
     m_bagger.setClassifier(rTree);
     m_bagger.setSeed(m_randomSeed);
     m_bagger.setNumIterations(m_numTrees);
     m_bagger.setCalcOutOfBag(true);
-    m_bagger.setComputeImportances(true); //change
+    m_bagger.setComputeImportances( this.getComputeImportances() );
 
     m_bagger.buildClassifier(data, m_NumThreads, this);
+    
   }
 
 
@@ -612,16 +652,28 @@ public class FastRandomForest
    */
   public String toString(){
 
+    StringBuilder sb = new StringBuilder();
+    
     if(m_bagger == null)
-      return "Random forest not built yet";
-    else
-      return "Random forest of " + m_numTrees
+      sb.append("FastRandomForest not built yet");
+    else {
+      sb.append("FastRandomForest of " + m_numTrees
         + " trees, each constructed while considering "
         + m_KValue + " random feature" + (m_KValue == 1 ? "" : "s") + ".\n"
-        + "Out of bag error: "
-        + Utils.doubleToString(m_bagger.measureOutOfBagError(), 4) + "\n"
+        + "Out of bag error: " + Utils.doubleToString(m_bagger.measureOutOfBagError()*100.0, 3) + "%\n"
         + (getMaxDepth() > 0 ? ("Max. depth of trees: " + getMaxDepth() + "\n") : (""))
-        + "\n";
+        + "\n");
+      if ( getComputeImportances() ) {
+        sb.append("Feature importances - increase in out-of-bag error (as % misclassified instances) after feature permuted:\n");
+        double[] importances = m_bagger.getFeatureImportances();
+        for ( int i = 0; i < importances.length; i++ ) {
+          sb.append( String.format( "%d\t%s\t%6.4f%%\n", i+1, this.m_Info.attribute(i).name(),
+                  i==m_Info.classIndex() ? Double.NaN : importances[i]*100.0 ) ); //bagger.getFeatureNames()[i] );
+        }
+      }
+    }
+    
+    return sb.toString();
   }
 
   /**
@@ -634,7 +686,7 @@ public class FastRandomForest
   }
 
   public String getRevision(){
-    return RevisionUtils.extract("$Revision: 0.98$");
+    return RevisionUtils.extract("$Revision: 0.99$");
   }
 
   ////////////////////////////
