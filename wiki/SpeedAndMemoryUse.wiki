@@ -1,92 +1,39 @@
-#summary FastRandomForest 0.98 compared to original Weka RF in speed and use of memory.
+#summary FastRandomForest 0.99 compared to original Weka 3-7-10 RF in speed tests.
 #labels Phase-QA,Featured
 
 =Setup and Summary=
 
-I've downloaded a set of UCI repository datasets from http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html. Ten runs of tenfold crossvalidation were used. Java version is 1.6.0_10-b33, server VM, heap size 1 GB, 32-bit Windows XP, machine has dual Opteron 275 (2 sockets, 4 cores).
+I've downloaded a set of UCI repository datasets from http://www.cs.waikato.ac.nz/~ml/weka/index_datasets.html, and tested on 17 of the datasets with >500 instances. A single run of tenfold crossvalidation was used, and number of threads set to 8 for both the Weka Random Forest and the FastRandomForest 0.99. Java version is 1.7.0 (64 bit), heap size 2 GB, 64-bit Windows 7, Core i7-2630QM (2 GHz, four cores w/hyperthreading).
 
-In brief, you can expect a *1.5-fold reduction in memory use*, and a 2.4x speedup over Weka's original RF in single-threaded mode. Running 4 threads on a capable machine will get you at least 3x scaling, for a total of *7x faster operation* than Weka's RF.
+In brief, you can expect (on average) a 2.3x speedup over Weka's original RF. This depends on the dataset -  with a bigger increase in datasets that are larger and that have fewer categorical attributes - and also on the underlying hardware.
 
-(note: This comparison is valid for Weka 3-6-1 and newer; older versions of Weka had a much slower RF implementation. If you use pre-3-6-1 Weka, then the speed improvements with FastRF will be even greater.)
+(note: This comparison was run on Weka 3-7-0 and is valid for Weka 3-6-1 and newer; older versions of Weka had a much slower RF implementation.)
 
 <wiki:toc max_depth="1"/>
 
 =Speed tests=
 
-I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF (ver. 3-6-1) to single-thread mode of !FastRandomForest on 34 datasets. The forest size was set to 100 trees, and 10 runs of 10-fold crossvalidation were used. 
+I've used the FastRF's built-in Benchmark tool to compare the speed of the original Weka RF (ver. 3-7-10) to !FastRandomForest 0.99 on 17 datasets. The forest size was set to 1000 trees (except where stated differently - three large datasets at bottom), and one run of 10-fold crossvalidation was used. 
 
-Average speed-up factor: in single-threaded mode FastRF is *2.4 x* faster.
+Average speed-up factor: FastRF is *2.3 x* faster.
 
-|| *dataset* || *numInstances* || *numAttributes* || *numClasses* || *speedup* ||
-|| anneal.arff || 898 || 39 || 6 || 1.1 x ||
-|| audiology.arff || 226 || 70 || 24 || 1.3 x ||
-|| autos.arff || 205 || 26 || 7 || 1.8 x ||
-|| balance-scale.arff || 625 || 5 || 3 || 3.2 x ||
-|| breast-cancer.arff || 286 || 10 || 2 || 1.4 x ||
-|| breast-w.arff || 699 || 10 || 2 || 3.4 x ||
-|| colic.arff || 368 || 23 || 2 || 4.6 x ||
-|| credit-a.arff || 690 || 16 || 2 || 2.3 x ||
-|| credit-g.arff || 1000 || 21 || 2 || 1.7 x ||
-|| diabetes.arff || 768 || 9 || 2 || 3.2 x ||
-|| glass.arff || 214 || 10 || 7 || 2.8 x ||
-|| heart-c.arff || 303 || 14 || 5 || 2.1 x ||
-|| heart-h.arff || 294 || 14 || 5 || 2.2 x ||
-|| heart-statlog.arff || 270 || 14 || 2 || 2.7 x ||
-|| hepatitis.arff || 155 || 20 || 2 || 2.3 x ||
-|| hypothyroid.arff || 3772 || 30 || 4 || 1.8 x ||
-|| ionosphere.arff || 351 || 35 || 2 || 2.9 x ||
-|| iris.arff || 150 || 5 || 3 || 3.3 x ||
-|| kr-vs-kp.arff || 3196 || 37 || 2 || 0.9 x ||
-|| labor.arff || 57 || 17 || 2 || 2.8 x ||
-|| letter.arff || 20000 || 17 || 26 || 4.3 x ||
-|| lymph.arff || 148 || 19 || 4 || 1.5 x ||
-|| mushroom.arff || 8124 || 23 || 2 || 8.4 x ||
-|| primary-tumor.arff || 339 || 18 || 22 || 1.7 x ||
-|| segment.arff || 2310 || 20 || 7 || 3.1 x ||
-|| sick.arff || 3772 || 30 || 2 || 1.7 x ||
-|| sonar.arff || 208 || 61 || 2 || 2.1 x ||
-|| soybean.arff || 683 || 36 || 19 || 1.9 x ||
-|| splice.arff || 3190 || 61 || 3 || 0.9 x ||
-|| vehicle.arff || 846 || 19 || 4 || 2.7 x ||
-|| vote.arff || 435 || 17 || 2 || 2.3 x ||
-|| vowel.arff || 990 || 14 || 11 || 2.6 x ||
-|| waveform-5000.arff || 5000 || 41 || 3 || 2.9 x ||
-|| zoo.arff || 101 || 18 || 7 || 1.1 x ||
+|| *dataset* || *# instances* || *# nominal attrs* || *# numeric attrs*|| *num classes* || *speedup* ||
+|| anneal || 898 || 6 || 32 || 6 || 1.42 x ||
+|| balance-scale || 625 || 4 || 0 || 3 || 3.14 x ||
+|| breast-w || 699 || 9 || 0 || 2 || 3.45 x ||
+|| credit-a || 690 || 6 || 9 || 2 || 2.25 x ||
+|| credit-g || 1000 || 7 || 13 || 2 || 1.20 x ||
+|| diabetes || 768 || 8 || 0 || 2 || 2.78 x ||
+|| hypothyroid || 3772 || 7 || 22 || 4 || 2.42 x ||
+|| kr-vs-kp || 3196 || 0 || 36 || 2 || 1.27 x ||
+|| mushroom || 8124 || 0 || 22 || 2 || 1.20 x ||
+|| segment || 2310 || 19 || 0 || 7 || 2.65 x ||
+|| sick || 3772 || 7 || 22 || 2 || 2.11 x ||
+|| soybean || 683 || 0 || 35 || 19 || 2.24 x ||
+|| vehicle || 846 || 18 || 0 || 4 || 2.58 x ||
+|| vowel || 990 || 10 || 3 || 11 || 1.62 x ||
+|| waveform-5000 (100 trees) || 5000 || 40 || 0 || 3 || 2.60 x ||
+|| letter (100 trees) || 20000 || 16 || 0 || 26 || 3.10 x ||
+|| splice (100 trees) || 3190 || 0 || 61 || 3 || 3.46 x ||
 
 .
-
-=Memory use=
-
-Table shows minimum heap size required to successfully train and test a forest of 1000 trees on six datasets. If the "-Xmx" option is set to anything less (in 10 MB increments), the training will not succeed.
-
-|| *dataset* || *heapSize_wekaRf* || *heapSize_fastRf* || *memory_savings* ||
-|| splice.arff || 250 || 190 || 1.32 x ||
-|| hypothyroid.arff || 50 || 40 || 1.25 x ||
-|| colic.arff || 70 || 20 || 3.50 x ||
-|| waveform-5000.arff || 160 || 110 || 1.45 x ||
-|| segment.arff || 40 || 30 || 1.33 x ||
-|| mushroom.arff || 30 || 80 || 0.38 x ||
-
-.
-
-=Multithreading=
-
-!FastRandomForest 0.98 can use multiple threads in classifier training, and in out-of-bag error estimation. For this test, Java version is 1.6.0_12-b04, server VM heap size 1 GB, 64-bit Windows XP, machine has dual Opteron 2354 (2 sockets, 8 cores). Figure shows speedup factor over single threaded operation for three large datasets.
-
-http://lis.irb.hr/~fran/fastRF_0.98_scaling_nessie.png
-
-It is critical that you use the *server VM* ("java -server") for optimal multithreaded performance.
-
-.
-
-
-=Java vs. native code=
-
-I compared execution time of !FastRandomForest to the excellent Fortran-based [http://parf.googlecode.com/ PARF] implementation, and found they were basically equivalent. (1000 trees, no crossvalidation)
-
-|| *dataset* || FastRF_runtime || PARF_runtime ||
-|| waveform-5000.arff || 1m22.8s || 1m26.3s ||
-|| segment.arff || 16.0s || 12.6s ||
-|| letter.arff || 4m30.4s || 5m0.3s ||
-
-Tests were run on datasets with only numerical attributes, as PARF has a sophisticated scheme for splitting on nominal attributes which would put it at a disadvantage when testing speed only.
