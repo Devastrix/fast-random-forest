@@ -126,3 +126,16 @@ Memory use optimizations in the DataCache.
 Changes to the Benchmark class.
   * Switched to a generalization of AUC score to multiclass problems as described in Provost and Domingos (CeDER Working Paper #IS-00-04, Stern School of Business, New York University, 2001), computed by taking a *weighted* average over all one-vs-all binary classification problems that can be derived from the multiclass problem, where weights correspond to class prior probabilities.
   * System.gc() is invoked after each classifier.
+
+
+= VERSION 0.99 =
+
+Multiple speed and memory optimizations, for more details, please refer to javadoc of the following:
+  * in the class FastRandomTree, please see function buildTree(), and the new functions splitDataNew() and distributionSequentialAtt()
+  * in the FastRfBagging, see function computeOOBError( DataCache data, ... ) and its helper class VotesCollectorDataCache, and also the buildClassifier() where the feature importances are computed
+
+Nominal attributes with more than 2 levels are treated differently than before; in 0.98 and previous, as well as Weka's Random Forest, for such attributes, splits with many branches are created. In 0.99, all splits are binary, and the best value of the nominal attribute (in a one-vs-rest fashion) is chosen for the split. Thus, the accuracy of 0.99 in datasets with multilevel nominal attributes may differ somewhat (in either direction) from Weka's standard implementation.
+
+The feature to compute RF attribute importances is accessible via the Explorer GUI and is off by default, as it incurs a significant computational cost. Results of the feature importance calculation are now displayed in the GUI; they are output by the FastRandomForest toString() function.
+
+Small changes in the output format of the Benchmark class.
