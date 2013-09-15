@@ -18,7 +18,7 @@
  *    FastRfBagging.java
  *    Copyright (C) 1999 University of Waikato, Hamilton, NZ (original code,
  *      Bagging.java )
- *    Copyright (C) 2009 Fran Supek (adapted code)
+ *    Copyright (C) 2013 Fran Supek (adapted code)
  */
 
 package hr.irb.fastRandomForest;
@@ -67,7 +67,7 @@ import java.util.concurrent.Future;
  * @author Len Trigg (len@reeltwo.com) - original code
  * @author Richard Kirkby (rkirkby@cs.waikato.ac.nz) - original code
  * @author Fran Supek (fran.supek[AT]irb.hr) - adapted code
- * @version $Revision: 0.98$
+ * @version $Revision: 0.99$
  */
 class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
   implements WeightedInstancesHandler, AdditionalMeasureProducer {
@@ -114,6 +114,15 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       FastRandomTree curTree = new FastRandomTree();
       // all parameters for training will be looked up in the motherForest (maxDepth, k_Value)
       curTree.m_MotherForest = motherForest;
+      // 0.99: reference to these arrays will get passed down all nodes so the array can be re-used 
+      // 0.99: this array is of size two as now all splits are binary - even categorical ones
+      curTree.tempProps = new double[2]; 
+      curTree.tempDists = new double[2][]; 
+      curTree.tempDists[0] = new double[data.numClasses()];
+      curTree.tempDists[1] = new double[data.numClasses()];
+      curTree.tempDistsOther = new double[2][]; 
+      curTree.tempDistsOther[0] = new double[data.numClasses()];
+      curTree.tempDistsOther[1] = new double[data.numClasses()];
       m_Classifiers[i] = curTree;
     }
 
@@ -149,7 +158,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
         DataCache bagData = myData.resample(bagSize, random);
         bagData.reusableRandomGenerator = bagData.getRandomNumberGenerator(
           random.nextInt());
-        inBag[treeIdx] = bagData.inBag;
+        inBag[treeIdx] = bagData.inBag; // store later for OOB error calculation
 
         // build the classifier
         if (m_Classifiers[treeIdx] instanceof FastRandomTree) {
@@ -174,22 +183,32 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
       }
 
       // calc OOB error?
-      if (getCalcOutOfBag() || getComputeImportances())
-        m_OutOfBagError = computeOOBError(data, inBag, threadPool);
-      else
+      if (getCalcOutOfBag() || getComputeImportances()) {
+        //m_OutOfBagError = computeOOBError(data, inBag, threadPool);
+        m_OutOfBagError = computeOOBError( myData, inBag, threadPool);
+      } else {
         m_OutOfBagError = 0;
+      }
 
       //calc feature importances
       m_FeatureImportances = null;
+      //m_FeatureNames = null;
       if (getComputeImportances()) {
         m_FeatureImportances = new double[data.numAttributes()];
-        Instances dataCopy = new Instances(data); //To scramble
-        int[] permutation = FastRfUtils.randomPermutation(data.numInstances(), random);
-        for (int j = 0; j < data.numAttributes(); j++)
+        ///m_FeatureNames = new String[data.numAttributes()];
+        //Instances dataCopy = new Instances(data); //To scramble
+        //int[] permutation = FastRfUtils.randomPermutation(data.numInstances(), random);
+        for (int j = 0; j < data.numAttributes(); j++) {
           if (j != data.classIndex()) {
-            double sError = computeOOBError(FastRfUtils.scramble(data, dataCopy, j, permutation), inBag, threadPool);
+            //double sError = computeOOBError(FastRfUtils.scramble(data, dataCopy, j, permutation), inBag, threadPool);
+            //double sError = computeOOBError(data, inBag, threadPool, j, 0);
+            float[] unscrambled = myData.scrambleOneAttribute(j, random);
+            double sError = computeOOBError(myData, inBag, threadPool);
+            myData.vals[j] = unscrambled; // restore the original state
             m_FeatureImportances[j] = sError - m_OutOfBagError;
           }
+          //m_FeatureNames[j] = data.attribute(j).name();
+        }
       }
 
       threadPool.shutdown();
@@ -244,6 +263,52 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
     return errorSum / outOfBagCount;
   }
 
+
+
+  /**
+   * Compute the out-of-bag error on the instances in a DataCache. This must
+   * be the datacache used for training the FastRandomForest (this is not 
+   * checked in the function!).
+   *
+   * @param data       the instances (as a DataCache)
+   * @param inBag      numTrees x numInstances indicating out-of-bag instances
+   * @param threadPool the pool of threads
+   *
+   * @return the oob error
+   */
+  private double computeOOBError( DataCache data,
+                                 boolean[][] inBag,
+                                 ExecutorService threadPool ) throws InterruptedException, ExecutionException {
+
+
+    List<Future<Double>> votes =
+      new ArrayList<Future<Double>>(data.numInstances);
+    for (int i = 0; i < data.numInstances; i++) {
+      VotesCollectorDataCache aCollector = new VotesCollectorDataCache(m_Classifiers, i, data, inBag);
+      votes.add(threadPool.submit(aCollector));
+    }
+
+    double outOfBagCount = 0.0;
+    double errorSum = 0.0;
+
+    for (int i = 0; i < data.numInstances; i++) {
+
+      double vote = votes.get(i).get();
+      // error for instance
+      outOfBagCount += data.instWeights[i];
+      if ( (int) vote != data.instClassValues[i] ) {
+        errorSum += data.instWeights[i];
+      }
+
+    }
+
+    return errorSum / outOfBagCount;
+    
+  }
+  
+  
+  
+  
   ////////////////////////////
   // Feature importances stuff
   ////////////////////////////
@@ -255,20 +320,20 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
   /**
    * Whether compute the importances or not.
    */
-  private boolean _computeImportances = true;
+  private boolean m_computeImportances = true;
 
   /**
    * @return compute feature importances?
    */
   public boolean getComputeImportances() {
-    return _computeImportances;
+    return m_computeImportances;
   }
 
   /**
    * @param computeImportances compute feature importances?
    */
   public void setComputeImportances(boolean computeImportances) {
-    _computeImportances = computeImportances;
+    m_computeImportances = computeImportances;
   }
 
   /**
@@ -277,6 +342,15 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
   public double[] getFeatureImportances() {
     return m_FeatureImportances;
   }
+  
+  /** Used when displaying feature importances. */
+  //private String[] m_FeatureNames; 
+  
+  /** Available only if feature importances have been computed. */
+  //public String[] getFeatureNames() {
+  //  return m_FeatureNames;
+  //}
+  
 
   ////////////////////////////
   // /Feature importances stuff
@@ -621,6 +695,6 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
   }
 
   public String getRevision() {
-    return RevisionUtils.extract("$Revision: 0.98$");
+    return RevisionUtils.extract("$Revision: 0.99$");
   }
 }
