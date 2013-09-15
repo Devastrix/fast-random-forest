@@ -17,7 +17,7 @@ I've used the FastRF's built-in Benchmark tool to compare the speed of the origi
 
 Average speed-up factor: FastRF is *2.3 x* faster.
 
-|| *dataset* || *# instances* || *# nominal attrs* || *# numeric attrs*|| *num classes* || *speedup* ||
+|| *dataset* || *# instances* || *# numeric atts* || *# nominal attrs*|| *num classes* || *speedup* ||
 || anneal || 898 || 6 || 32 || 6 || 1.42 x ||
 || balance-scale || 625 || 4 || 0 || 3 || 3.14 x ||
 || breast-w || 699 || 9 || 0 || 2 || 3.45 x ||
