@@ -11,7 +11,7 @@
  *
  *    You should have received a copy of the GNU General Public License
  *    along with this program; if not, write to the Free Software
- *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *    Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110.
  */
 
 /*
@@ -32,6 +32,7 @@ import java.util.Random;
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Evaluation;
 import weka.core.Instances;
+import weka.core.SerializationHelper;
 import weka.core.Utils;
 import weka.experiment.PairedStatsCorrected;
 import weka.filters.supervised.instance.StratifiedRemoveFolds;
@@ -106,6 +107,10 @@ public class Benchmark {
         data.setClassIndex(data.numAttributes() - 1);
       data.deleteWithMissingClass();
 
+      //FastRandomForest frf = new FastRandomForest();
+      //frf.setNumTrees(10); frf.setMaxDepth(5);
+      //frf.buildClassifier(data);
+      
       // count numeric and nominal attributes
       int numNumeric = 0, numNominal = 0;
       for (int i = 0; i < data.numAttributes(); i++) {

@@ -11,7 +11,7 @@
  *
  *    You should have received a copy of the GNU General Public License
  *    along with this program; if not, write to the Free Software
- *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *    Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110.
  */
 
 /*
@@ -629,7 +629,7 @@ class FastRfBagging extends RandomizableIteratedSingleClassifierEnhancer
    *
    * @param instance the instance to be classified
    *
-   * @return preedicted class probability distribution
+   * @return predicted class probability distribution
    *
    * @throws Exception if distribution can't be computed successfully
    */
