@@ -11,7 +11,7 @@
  *
  *    You should have received a copy of the GNU General Public License
  *    along with this program; if not, write to the Free Software
- *    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *    Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110.
  */
 
 /*
@@ -153,6 +153,7 @@ class FastRandomTree
   @Override
   public Capabilities getCapabilities() {
     Capabilities result = super.getCapabilities();
+    result.disableAll(); 
 
     // attributes
     result.enable(Capability.NOMINAL_ATTRIBUTES);
@@ -216,7 +217,7 @@ class FastRandomTree
     data.whatGoesWhere = new int[ data.inBag.length ];
     data.createInBagSortedIndices();
 
-    buildTree(data.sortedIndices, 0, data.sortedIndices[0].length-1,
+    buildTree(data.sortedIndices, 0, data.sortedIndices[attIndicesWindow[0]].length-1,
             classProbs, m_Debug, attIndicesWindow, 0);
 
     this.data = null;
